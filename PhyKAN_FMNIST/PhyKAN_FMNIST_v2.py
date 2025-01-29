@@ -64,17 +64,17 @@ class PhyKAN(nn.Module):
         # Bound parameters
         params= self.sig(params)
         # Encode inputs to frequency space
-        freq = 10**(3.69+2*Xin).unsqueeze(-1).unsqueeze(-1)
+        freq = 10**(3.605+2*Xin).unsqueeze(-1).unsqueeze(-1)
         # Allow bounded gains to be both positive and negative
         gain = 10*(params[:,:,:, 0].unsqueeze(0)-0.5)
         # Set cutoff frequencies from parameters
-        fc_low = 10**(3.5+3*params[:,:,:, 1].unsqueeze(0))
-        fc_high = 10**(3.5+3*params[:,:,:, 2].unsqueeze(0))
+        fc_low = 10**(3.6+2*params[:,:,:, 1].unsqueeze(0))
+        fc_high = 10**(3.6+2*params[:,:,:, 2].unsqueeze(0))
         # Convert cutoff frequency to product of resistance and capacitance
         RC_low = (2*torch.pi*fc_low)**-1
         RC_high = (2*torch.pi*fc_high)**-1
         # Calculate steady state response with respect to drive frequency
-        Hout = gain*torch.abs((2j*torch.pi*freq*RC_low/(1+2j*torch.pi*freq*RC_low))*(1/(1+2j*torch.pi*freq*RC_high)))
+        Hout = gain*torch.abs((2j*torch.pi*freq*RC_high/(1+2j*torch.pi*freq*RC_high))*(1/(1+2j*torch.pi*freq*RC_low)))
         # Apply mask
         Hout = Hout * mask.unsqueeze(0).unsqueeze(-1)
         # Sum across units within each edge, and across multiple inputs to each node
@@ -96,7 +96,7 @@ class PhyKAN(nn.Module):
         RC_low = (2*torch.pi*fc_low)**-1
         RC_high = (2*torch.pi*fc_high)**-1
         # Calculate steady state response with respect to drive frequency
-        Hout = gain*torch.abs((2j*torch.pi*freq*RC_low/(1+2j*torch.pi*freq*RC_low))*(1/(1+2j*torch.pi*freq*RC_high)))
+        Hout = gain*torch.abs((2j*torch.pi*freq*RC_high/(1+2j*torch.pi*freq*RC_high))*(1/(1+2j*torch.pi*freq*RC_low)))
         # Sum across units within each edge
         return Hout.sum(dim=-1)
     
@@ -116,7 +116,7 @@ class PhyKAN(nn.Module):
         fc_high = 10**(3.5+3*params[:, 2].unsqueeze(0))
         RC_low = (2*torch.pi*fc_low)**-1
         RC_high = (2*torch.pi*fc_high)**-1
-        Hout = gain*torch.abs((2j*torch.pi*freq*RC_low/(1+2j*torch.pi*freq*RC_low))*(1/(1+2j*torch.pi*freq*RC_high)))
+        Hout = gain*torch.abs((2j*torch.pi*freq*RC_high/(1+2j*torch.pi*freq*RC_high))*(1/(1+2j*torch.pi*freq*RC_low)))
         return Hout.sum(dim=1).sum(dim=-1)
     
     # Forward pass through the model, returns activations on every node in the network
