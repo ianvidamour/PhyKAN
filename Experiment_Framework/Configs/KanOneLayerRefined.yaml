@@ -1,0 +1,19 @@
+
+network: "kan"
+refine: True
+
+grid: 3
+polynomial: 3
+
+layers: 
+- 784 
+- 200
+- 10 
+
+noisy: False
+
+batch_size: 100
+val_batch_size: 100
+
+epochs: 5
+learning_rate: 0.01
