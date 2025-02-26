@@ -1,18 +1,25 @@
 from Experiment import *
 
-#exp1 = Experiment( './Configs/', 'MLPOneLayerNoisy', 'MLPOneLayerNoisyTrainingOutput.csv', 'MLPOneLayerNoisyOutput.csv' )
+#exp4 = ExperimentWrapper( './Configs/', 'PhyKanOneLayer', 1)
+#exp4.run()
 
-#exp1 = Experiment( './Configs/', 'KanOneLayerRefined', 'KANTrainingOutput1LayerRefined.csv', 'KANValidationOutput1LayerRefined.csv' )
+exp = ExperimentWrapper( './Configs/', 'MLPOneLayer', 1)
+exp.run()
 
-#exp1 = Experiment( './Configs/', 'KanOneLayer', 'KANTrainingOutput1Layer.csv', 'KANValidationOutput1Layer.csv' )
-#exp2 = Experiment( './Configs/', 'KanTwoLayer', 'KANTrainingOutput2Layer.csv', 'KANValidationOutput2Layer.csv' )
+exp1 = ExperimentWrapper( './Configs/', 'MLPTwoLayer', 1)
+exp1.run()
 
-#exp3 = Experiment( './Configs/', 'MLPOneLayer', 'MLPTrainingOutput1Layer.csv', 'PLEASEVALIDATE.csv' )
+exp2 = ExperimentWrapper( './Configs/', 'KanOneLayer', 1)
+exp2.run()
+
+exp3 = ExperimentWrapper( './Configs/', 'KanTwoLayer', 1)
+exp3.run()
 
 exp4 = ExperimentWrapper( './Configs/', 'PhyKanOneLayer', 1)
 exp4.run()
 
-#exp5 = ExperimentWrapper( './Configs/', 'MLPOneLayer', 1)
+exp5 = ExperimentWrapper( './Configs/', 'PhyKanTwoLayer', 1)
+exp5.run()
 #a = AnalyticsPipe('./Results/MLPOneLayer_5')
 #a.run()
 

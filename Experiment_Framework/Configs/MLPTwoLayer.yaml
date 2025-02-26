@@ -10,7 +10,7 @@ layers:
 noisy: False
 
 batch_size: 100
-val_batch_size: 200
+val_batch_size: 100
 
-epochs: 1
+epochs: 5
 learning_rate: 0.01

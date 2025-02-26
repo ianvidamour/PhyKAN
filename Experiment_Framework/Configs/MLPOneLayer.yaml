@@ -8,8 +8,8 @@ layers:
 
 noisy: False
 
-batch_size: 1000
-val_batch_size: 1000
+batch_size: 100
+val_batch_size: 100
 
-epochs: 2
-learning_rate: 0.001
+epochs: 5
+learning_rate: 0.01

@@ -150,9 +150,9 @@ class Experiment:
             #
             for batch_idx, (batch_images, batch_labels) in enumerate(self.train_loader):
                 
-                if batch_idx % 10 == 0:
+                if step % 10 == 0:
                     self.net.eval()
-                    #self.validationLoop()
+                    self.validationLoop()
                     self.net.train()
 
                 if step == 2000 and self.refine == True:

@@ -146,9 +146,7 @@ def whiten_torch(Z,covariance_bias=False,variance_explained=1):
     epsilon = 1e-12
     
     whiten_matrix = principle_components @  torch.diag(1.0 / torch.sqrt( principle_components_eigenvalues + epsilon))
-    print("components: ", principle_components.shape) 
-    print("pca eigenvalues:§ ", principle_components_eigenvalues.shape)
-    print("whiten_matrix: ", whiten_matrix.shape)
+    
     # Whitening: decorrelate and scale features
     Z_whitened = Z_centered @ whiten_matrix
 

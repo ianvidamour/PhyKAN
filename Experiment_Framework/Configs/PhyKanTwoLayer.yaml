@@ -4,6 +4,7 @@ network: "phykan"
 layers: 
 - 784
 - 200
+- 200
 - 10 
 
 filters_per_unit: 3
