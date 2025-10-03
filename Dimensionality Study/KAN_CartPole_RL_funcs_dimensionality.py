@@ -200,6 +200,8 @@ trial_lengths = np.zeros((Nepisodes))
 rewards_out = np.zeros((Nepisodes, Nsteps))
 theta_prime_weights = np.zeros((Nepisodes, 6))
 theta_zero_weights = np.zeros((Nepisodes, 6))
+intrinsic_dim_inputs = np.zeros((Nepisodes))
+intrinsic_dim_hiddens = np.zeros((Nepisodes))
 # Script for training model
 for episode in range(Nepisodes):
     for step in range(Nsteps):
@@ -226,15 +228,6 @@ for episode in range(Nepisodes):
             break
     # Greedy Run
     for step in range(Nsteps):
-        # Measure Intrinsic Dimensionality
-        inputs = replay_buffer[:10000, Nactions:Nactions+Nstates]
-        activations = model.forward(torch.from_numpy(inputs))
-        # Whiten data
-        whitened_inputs, eig, vec = whiten_data(inputs)
-        whitened_hiddens, eig, vec = whiten_data(activations[0].detach())
-        # Calculate intrinsic dimensionality
-        input_dimensionality = intrinsic_dimension(whitened_inputs.T)
-        hidden_dimensionality = intrinsic_dimension(whitened_hiddens.T)
         if terminated == False:
             # Step agent with greedy policy
             new_state, action, reward, terminated = step_agent_greedy(state, model)
@@ -246,6 +239,17 @@ for episode in range(Nepisodes):
             state, info = env.reset()
             terminated = False
             break
+    # Measure Intrinsic Dimensionality
+    inputs = replay_buffer[:10000, Nactions:Nactions+Nstates]
+    activations = model.forward(torch.from_numpy(inputs))
+    # Whiten data
+    whitened_inputs, eig, vec = whiten_data(inputs)
+    whitened_hiddens, eig, vec = whiten_data(activations[0].detach())
+    # Calculate intrinsic dimensionality
+    input_dimensionality = intrinsic_dimension(whitened_inputs.T)
+    hidden_dimensionality = intrinsic_dimension(whitened_hiddens.T)
+    intrinsic_dim_hiddens[episode] = hidden_dimensionality
+    intrinsic_dim_inputs[episode] = input_dimensionality
     print('Episode: '+str(episode)+', Trial Length (greedy) :'+str(step))
     print('Input Intrinsic Dimensionality: '+str(input_dimensionality))
     print('Hidden Intrinsic Dimensionality: '+str(hidden_dimensionality))
