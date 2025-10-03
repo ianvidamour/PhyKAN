@@ -123,7 +123,7 @@ torch.set_default_device(device)
 # Define shape for models
 Nactions = 2
 Nstates = 4
-shape = [Nstates, 10, 10, Nactions]
+shape = [Nstates, 10, Nactions]
 # Load look-up table for discretisation
 low_vals = np.load('LowFilterVals.npy')
 high_vals = np.load('HighFilterVals.npy')
@@ -156,6 +156,8 @@ terminated = False
 # Outputs to save learning curves
 trial_lengths = np.zeros((Nepisodes))
 rewards_out = np.zeros((Nepisodes, Nsteps))
+theta_prime_weights = np.zeros((Nepisodes, 6))
+theta_zero_weights = np.zeros((Nepisodes, 6))
 # Script for training model
 for episode in range(Nepisodes):
     for step in range(Nsteps):
@@ -167,6 +169,9 @@ for episode in range(Nepisodes):
             shaped_reward = reward_shaping(new_state, reward)
             # Add experience to replay buffer
             replay_buffer = add_experience(replay_buffer, action, state, new_state, shaped_reward)
+            # Get rid of placeholder information in very first run
+            if episode and step == 0:
+                replay_buffer = replay_buffer[1][None, :]
             # Model training
             loss = training_step(model, prediction_network, replay_buffer, Nactions, Nstates)
             # Track reward
@@ -192,5 +197,20 @@ for episode in range(Nepisodes):
             terminated = False
             break
     print('Episode: '+str(episode)+', Trial Length (greedy) :'+str(step))
+    # Track example weights as learning progresses
+    theta_prime_weights[episode] = torch.clone(model.filter_params[0][0, 0, :, 2]).detach().numpy()
+    theta_zero_weights[episode] = torch.clone(prediction_network.filter_params[0][0, 0, :, 2]).detach().numpy()
         
-        
+#%%
+import matplotlib.pyplot as plt
+
+plt.figure()
+for i in range(6):
+    if i == 0:
+        plt.plot(theta_prime_weights[:, i], color='red', label='Theta prime')
+        plt.plot(theta_zero_weights[:, i], color='black', label='Theta zero')
+    else:
+        plt.plot(theta_prime_weights[:, i], color='red')
+        plt.plot(theta_zero_weights[:, i], color='black')
+plt.legend()
+plt.show()
