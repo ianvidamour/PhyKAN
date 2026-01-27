@@ -9,7 +9,6 @@ Created on Wed Jun  4 14:35:33 2025
 import numpy as np
 import torch
 from PhyKAN_Util_actorcritic import PhyKAN_actor, PhyKAN_critic
-import matplotlib.pyplot as plt
 
 def state_normalisation(state):
     norm_state = np.zeros_like(state)
@@ -31,9 +30,11 @@ from CartPole_env import CartpoleEnvironment
 env = CartpoleEnvironment()
 x, xdot, theta, thetadot, upright = env.reset()
 
+
 # Define shapes for each network
-actor_shape = [4, 20, 20, 20, 1]
-critic_shape = [5, 20, 20, 20, 1]
+N = 15
+actor_shape = [4, N, N, 1]
+critic_shape = [5, N, N, 1]
 
 # Initialise networks
 critic_model = PhyKAN_critic(critic_shape, 6, low_vals, high_vals, lr=1e-2)
@@ -48,7 +49,7 @@ gamma = 0.95
 replay_buffer = np.zeros((1, 10))
 # Define rate of updating prediction network
 update_tau = 0.001
-
+trial_length = np.zeros((1000))
 for episode in range(1000):
     # First in, first out for replay buffer when exceeding a given length
     if len(replay_buffer)>100000:
@@ -114,19 +115,12 @@ for episode in range(1000):
             xs[step] = xnew[0]
         else:
             break
+    trial_length[episode] = step
     print(episode, step)
-    if episode%20==0:
-        fig, ax1 = plt.subplots()
-        plt.title('Epsiode: '+str(episode))
-        ax2 = plt.twinx(ax1)
-        ax1.set_ylabel('Pole angle, radians', color='tab:blue')
-        ax1.set_ylim(-0.3, 0.3)
-        ax2.set_ylabel('Force applied, Newtons', color='red')
-        ax1.plot(thetas[:step])
-        ax1.set_xlabel('Timestep')
-        ax2.plot(np.array(action_list[:step])*5, color='red')
-        ax2.set_ylim(-np.amax(np.abs(np.array(action_list[:step])*5)), np.amax(np.abs(np.array(action_list[:step])*5)))
-        plt.show()
+np.save('Trial Lengths, CartPole Continous 2L, N='+str(N)+'.npy', trial_length)
+torch.save(actor_model, 'Actor Network, CartPole Continous 2L, N='+str(N)+'.pt')
+torch.save(critic_model, 'Critic Network, CartPole Continous 2L, N='+str(N)+'.pt')
+
 
 
         

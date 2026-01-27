@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import matplotlib.pyplot as plt
+
 
 device='cpu'
 torch.set_default_device(device)
@@ -82,7 +82,7 @@ class ActorNet(nn.Module):
         action = self.forward(x)
         critic_in = torch.cat((action, x), dim=1)
         q_values = self.critic_model.forward(critic_in)
-        loss = -1*q_values.mean()
+        loss = -1*q_values.mean() + 1e-3*action.abs().mean()
         loss.backward()
         self.optimiser.step()
         return loss.item()
@@ -113,24 +113,24 @@ x, xdot, theta, thetadot, upright = env.reset()
 
 
 # Define number of nodes in hidden layers
-N = 200
+N=50
 # Define rate of updating prediction network
 update_tau = 0.001
 # Define discount factor
 gamma = 0.95
 # Initialise critic network
-critic_network = CriticNet([5, N, N, N, 1], 1e-3)
+critic_network = CriticNet([5, N, N, 1], 1e-3)
 # Initialise prediction network, setting initial parameters as equal to those of the critic network
-prediction_network = CriticNet([5, N, N, N, 1], 1e-3)
+prediction_network = CriticNet([5, N, N, 1], 1e-3)
 for l in range(critic_network.Nlayers):
     prediction_network.weights[l] = torch.clone(critic_network.weights[l])
     prediction_network.biases[l] = torch.clone(critic_network.biases[l])
 # Initialise policy network
-actor_network = ActorNet([4, N, N, N, 1], 1e-5, critic_network)
+actor_network = ActorNet([4, N, N, 1], 1e-5, critic_network)
   
 # Initialise replay buffer
 replay_buffer = np.zeros((1, 10))
-
+trial_length = np.zeros((1000))
 # Loop over episodes
 for episode in range(1000):
     # First in, first out for replay buffer when exceeding a given length
@@ -200,17 +200,9 @@ for episode in range(1000):
             actor_loss = actor_network.train(current_inputs[:, 1:].float())
         else:
             break
+    trial_length[episode] = step
     print(episode, step)
-    if episode%20==0:
-        fig, ax1 = plt.subplots()
-        plt.title('Epsiode: '+str(episode))
-        ax2 = plt.twinx(ax1)
-        ax1.set_ylabel('Pole angle, radians', color='tab:blue')
-        ax1.set_ylim(-0.3, 0.3)
-        ax2.set_ylabel('Force applied, Newtons', color='red')
-        ax1.plot(thetas[:step])
-        ax1.set_xlabel('Timestep')
-        ax2.plot(np.array(action_list[:step])*5, color='red')
-        ax2.set_ylim(-np.amax(np.abs(np.array(action_list[:step])*5)), np.amax(np.abs(np.array(action_list[:step])*5)))
-        plt.show()
-   
+np.save('MLP Trial Lengths, CartPole Continous 2L, N='+str(N)+'.npy', trial_length)
+torch.save(actor_network, 'MLP Actor Network 2L, CartPole Continous, N='+str(N)+'.pt')
+torch.save(critic_network, 'MLP Critic Network 2L, CartPole Continous, N='+str(N)+'.pt')
+
