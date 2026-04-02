@@ -7,33 +7,36 @@ from scipy.ndimage import gaussian_filter1d
 import pyarrow
 
 class AnalyticsPipe():
-    def __init__(self, resultsPath: str):
+    def __init__(self, resultsPath: str, outName: str):
         self.resultsPath = resultsPath
-
+        self.outName = outName
     def run(self):
         self.createFrames()
         self.createAverages()
+        self.train_combined.to_csv(self.outName + "train.csv")
+        self.val_combined.to_csv(self.outName + "val.csv")
+        
         #self.plotTraining()
-        self.plotValidation()
+        #self.plotValidation()
 
     def createFrames(self):
-        self.train_combineds = []
-        self.train_combineds = []
+        self.train_combined = []
+        self.val_combined = []
     
         for file in os.listdir(self.resultsPath):
             file_path = os.path.join(self.resultsPath, file)
 
             if "train" in file.lower():  # Check if "train" is in the filename
-                self.train_combined = pl.read_csv(file_path)
-                self.train_combineds.append(self.train_combined)
+                #self.train_combined = 
+                self.train_combined.append(pl.read_csv(file_path))
 
             elif "val" in file.lower():  # Check if "val" is in the filename
-                self.train_combined = pl.read_csv(file_path)
-                self.train_combineds.append(self.train_combined)
+                #self.train_combined = 
+                self.val_combined.append(pl.read_csv(file_path))
 
         # Combine DataFrames for "train" and "val"
-        self.train_combined = pl.concat(self.train_combineds) if self.train_combineds else None
-        self.val_combined = pl.concat(self.train_combineds) if self.train_combineds else None
+        self.train_combined = pl.concat(self.train_combined) # if self.train_combined else None
+        self.val_combined = pl.concat(self.val_combined) # if self.train_combined else None
 
     def createAverages(self):
 
@@ -43,11 +46,11 @@ class AnalyticsPipe():
             pl.mean('layer_0_dimensionality').alias('Avg Layer 0 Dim'),
             pl.mean('layer_1_dimensionality').alias('Avg Layer 1 Dim')]).sort(by='steps')
         
-        self.val_combined = self.val_combined.group_by('steps').agg([
+        self.val_combined = self.val_combined.group_by('steps', 'epoch').agg([
             pl.mean('accuracy'),
             pl.mean('loss'),
             pl.mean('layer_0_dimensionality'),
-            pl.mean('layer_1_dimensionality')])
+            pl.mean('layer_1_dimensionality')]).sort(by='steps')
         
         self.train_combined = self.train_combined.with_columns([
             self.train_combined[col].rolling_mean(window_size=4, center=True).alias(f"{col}_moving_avg") 

@@ -2,8 +2,18 @@ from .Experiment import Experiment
 import os
 import tqdm
 import shutil
+import torch
+import numpy as np
 
-class ExperimentWrapper():
+def set_seed(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) 
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+class   ExperimentWrapper():
     def __init__(self, configPath: str, configFile: str, repeats: int):
         
         self.repeats = repeats
@@ -33,7 +43,7 @@ class ExperimentWrapper():
         """Call function to run experiment class for x repeats"""
         print(f"Experiment started!")
         for i in tqdm.trange(self.repeats):
-            
-            e = Experiment(self.configPath, self.configFile, self.outputFolder)
+            set_seed(i)
+            e = Experiment(self.configPath, self.configFile, self.outputFolder, seed=i)
             e.run(i)
         print(f"Completed... :ß")

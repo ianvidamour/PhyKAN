@@ -2,6 +2,9 @@ import numpy as np
 import torch  
 from torch import linalg
 
+
+
+
 def intrinsic_dimension(points,diagnostics=0):
     epsilon=1e-16
     n_points = points.shape[0]
@@ -152,6 +155,69 @@ def whiten_torch(Z,covariance_bias=False,variance_explained=1):
 
     return Z_whitened
 
+def safe_whiten_pca_np(Z,covariance_bias=False,variance_explained=0.95):
+    try:
+        # Check the type of Z and convert it to a numpy array if necessary
+        if isinstance(Z, torch.Tensor):
+            Z_np = Z.numpy()
+        elif isinstance(Z, np.matrix):
+            Z_np = np.array(Z)
+        else:  # assuming Z is a numpy array
+            Z_np = Z
+
+        # Calculate the mean and subtract it
+        mean = np.mean(Z_np, axis=0)
+        Z_centered = Z_np - mean
+
+        # Compute the covariance matrix
+        cov_matrix = np.cov(Z_centered, rowvar=0, bias=covariance_bias) # should be the same   
+
+        # Perform eigendecomposition
+        eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
+
+        idx = np.argsort(-eigenvalues)
+        eigenvalues = eigenvalues[idx]
+        eigenvectors = eigenvectors[:,idx]
+
+        # Clip the eigenvalues to be non-negative
+        eigenvalues = np.clip(eigenvalues, a_min=0, a_max=None)
+
+        # Add debugging information
+        #print("Shape of eigenvalues:", eigenvalues.shape)
+        #print("Any NaN in eigenvalues:", np.any(np.isnan(eigenvalues)))
+        #print("Any zeros in sum:", np.any(np.sum(eigenvalues, axis=0) == 0))
+        #print("Min eigenvalue:", np.min(eigenvalues))
+        #print("Max eigenvalue:", np.max(eigenvalues))
+
+        # Add safety check for division
+        cumsum_eigenvalues = np.zeros_like(eigenvalues)
+        sum_eigenvalues = np.sum(eigenvalues, axis=0)
+
+        # Handle cases where sum is zero or contains NaN
+        mask = np.isfinite(sum_eigenvalues) & (sum_eigenvalues != 0)
+        if np.any(mask):
+            cumsum_eigenvalues[:,mask] = np.cumsum(eigenvalues[:,mask], axis=0)/sum_eigenvalues[mask]
+
+        # Finde the principle components that explain variance in the data equal to variance_explained
+        cumsum_eigenvalues=np.cumsum(eigenvalues,axis=0)/np.sum(eigenvalues, axis=0)
+
+        number_of_components=min((np.searchsorted(cumsum_eigenvalues,variance_explained)+1),eigenvalues.shape[0])
+
+        principle_components=eigenvectors[:,: number_of_components]
+        principle_components_eigenvalues=eigenvalues[: number_of_components]
+
+        # Compute the diagonal matrix of inverse square roots of eigenvalues of the principle components
+        epsilon = 1e-10
+        whiten_matrix = principle_components @  np.diag(1.0 / np.sqrt( principle_components_eigenvalues + epsilon))
+
+        # Whitening: decorrelate and scale features
+        Z_whitened = Z_centered @ whiten_matrix
+        return Z_whitened
+
+    except Exception as e:
+        print(f"[WARN] Whitening failed: {e}")
+        return np.array(0.0)
+
 def whiten_pca_np(Z,covariance_bias=False,variance_explained=0.95):
     
     # Check the type of Z and convert it to a numpy array if necessary
@@ -191,7 +257,7 @@ def whiten_pca_np(Z,covariance_bias=False,variance_explained=0.95):
     sum_eigenvalues = np.sum(eigenvalues, axis=0)
 
     # Handle cases where sum is zero or contains NaN
-    mask = sum_eigenvalues != 0
+    mask = np.isfinite(sum_eigenvalues) & (sum_eigenvalues != 0)
     if np.any(mask):
         cumsum_eigenvalues[:,mask] = np.cumsum(eigenvalues[:,mask], axis=0)/sum_eigenvalues[mask]
 
@@ -210,3 +276,46 @@ def whiten_pca_np(Z,covariance_bias=False,variance_explained=0.95):
     # Whitening: decorrelate and scale features
     Z_whitened = Z_centered @ whiten_matrix
     return Z_whitened
+
+def safe_svd_whiten(X, eps=1e-10):
+    try:
+        # Center the data
+        X_centered = X - np.mean(X, axis=0, keepdims=True)
+
+        # SVD decomposition
+        U, S, Vt = np.linalg.svd(X_centered, full_matrices=False)
+        
+        # Regularize singular values to avoid division by zero
+        S_reg = np.where(S < eps, eps, S)
+        
+        # Apply whitening transformation: X_white = U @ diag(1/sqrt(S)) @ Vt
+        # This can be computed as: U / sqrt(S)
+
+        X_whitened = U @ np.diag(1/np.sqrt(S_reg)) @ Vt
+        #X_whitened = U / np.sqrt(S_reg)[None, :]
+        
+        return X_whitened
+        
+    except Exception as e:
+        print(f"[WARN] Whitening failed: {e}")
+        # Return array of same shape as input, filled with zeros
+        return np.zeros_like(X)
+    
+def svd_whiten(X, eps=1e-10):
+    # Center the data
+    X_centered = X - np.mean(X, axis=0, keepdims=True)
+
+    # SVD decomposition
+    U, S, Vt = np.linalg.svd(X_centered, full_matrices=False)
+    
+    # Regularize singular values to avoid division by zero
+    #S_reg = np.where(S < eps, eps, S)
+    
+    # Apply whitening transformation: X_white = U @ diag(1/sqrt(S)) @ Vt
+    # This can be computed as: U / sqrt(S)
+
+    X_whitened = U @ np.diag(1/np.sqrt(S)) @ Vt
+    #X_whitened = U / np.sqrt(S_reg)[None, :]
+    
+    return X_whitened
+

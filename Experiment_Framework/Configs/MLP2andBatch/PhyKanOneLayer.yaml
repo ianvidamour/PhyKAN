@@ -8,15 +8,17 @@ layers:
 
 filters_per_unit: 3
 thresholding: False 
-lr_decay: 0.99
+lr_decay: 1
 sigmoid_s: 0.5
 
-lambda: 0.01
+lambda: 1
+
+batchnorm: True
 
 noisy: False
 
-batch_size: 100
-val_batch_size: 100
+batch_size: 250
+val_batch_size: 1000
 
-epochs: 3
-learning_rate: 0.001
+epochs: 15
+learning_rate: 0.01
