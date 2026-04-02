@@ -1,0 +1,15 @@
+
+network: "mlp"
+
+layers: 
+- 784
+- 200
+- 10 
+
+noisy: False
+
+batch_size: 1000
+val_batch_size: 1000
+
+epochs: 3
+learning_rate: 0.001
