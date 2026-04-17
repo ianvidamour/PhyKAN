@@ -5,7 +5,9 @@ Created on Fri Nov  8 12:17:04 2024
 
 @author: ian
 """
+import copy
 import os
+import pickle as pk
 import numpy as np
 import torch
 import torch.nn as nn
@@ -145,13 +147,14 @@ def intrinsic_dimension(points,diagnostics=0):
     return dimensionality
 
 # Number of hidden nodes
-import sys
+'''import sys
 inp = int(sys.argv[1])
 
-Netsizes = [15,20, 30, 40, 50, 60, 75, 80,100, 150, 200, 250] # [7, 10, 12, 
+Netsizes = [100, 150] #, 7, 10, 12, 15,20, 30, 40, 50, 60, 75, 80,100, 150, 200, 250]
 
-N = Netsizes[inp]
+N = Netsizes[inp]'''
 
+N = 30
 # Filters per edge
 nfilt = 6
 
@@ -172,12 +175,9 @@ shape = [3, N, N, 6]
 # Initialise model
 
 # Identifier to test multiple initialisations
-run = 0
-error = False
-while run < 1:
+for run in range(2):
 
     model = PhyKAN(shape, nfilt, low_vals, high_vals, lr=1e-2)
-    
     # Load data
     Xdata = np.load('6a_effector_locations.npy')
     # Random shuffling of samples. Note that this is only in numpy random number generation, so the model's starting weights
@@ -201,6 +201,7 @@ while run < 1:
 
     for i in range(Ntr):
         # Random sample of minibatch
+        modelbackup = copy.deepcopy(model)
         Xs, Ys = gen_samples(x_train, x_train, 50)
         # Strong penalty early in training to encourage sparsity
         if i < Ntr-20000:
@@ -227,34 +228,36 @@ while run < 1:
             accuracies.append(loss.cpu().detach().numpy())
             # Measure Intrinsic Dimensionality
             inputs = x_val
-            try:
-                activations = model.forward(inputs)
-                # Whiten data
-                whitened_inputs = whiten_pca_np(inputs.detach().cpu())
-                whitened_hiddens1 = whiten_pca_np(activations[0].detach().cpu())
-                whitened_hiddens2 = whiten_pca_np(activations[1].detach().cpu())
-                whitened_hiddens3 = whiten_pca_np(activations[2].detach().cpu())
-                # Calculate intrinsic dimensionality
+            activations = model.forward(inputs)
+            # Whiten data
+            whitened_inputs = whiten_pca_np(inputs.detach().cpu())
+            whitened_hiddens1 = whiten_pca_np(activations[0].detach().cpu())
+            whitened_hiddens2 = whiten_pca_np(activations[1].detach().cpu())
+            whitened_hiddens3 = whiten_pca_np(activations[2].detach().cpu())
+            # Calculate intrinsic dimensionality
+            try:    
                 input_dimensionality = intrinsic_dimension(whitened_inputs.T)
                 hidden_dimensionality1 = intrinsic_dimension(whitened_hiddens1.T)
                 hidden_dimensionality2 = intrinsic_dimension(whitened_hiddens2.T)
                 hidden_dimensionality3 = intrinsic_dimension(whitened_hiddens3.T)
-
+    
                 intrinsic_dim_hiddens1[i//Ncheck] = hidden_dimensionality1
                 intrinsic_dim_hiddens2[i//Ncheck] = hidden_dimensionality2
                 intrinsic_dim_hiddens3[i//Ncheck] = hidden_dimensionality3
                 intrinsic_dim_inputs[i//Ncheck] = input_dimensionality
             except:
-                error=True
+                print('ERRORORRORORORO')
+                torch.save(modelbackup, 'ErrorModel.pt')
+                # Move activations to CPU and convert to numpy for better compatibility
+                activations_cpu = [a.detach().cpu().numpy() for a in activations]
+                with open(f'./ErrorActivations_{run}.pkl', 'wb') as file:  
+                    pk.dump(activations_cpu, file, protocol=pk.HIGHEST_PROTOCOL)
             #print('Iteration: '+str(i))
             #print('Loss : '+str(loss))
             #print('Input Intrinsic Dimensionality: '+str(input_dimensionality))
             #print('Hidden Intrinsic Dimensionality 1: '+str(hidden_dimensionality1))
             #print('Hidden Intrinsic Dimensionality 2: '+str(hidden_dimensionality2))
             #print('Hidden Intrinsic Dimensionality 3: '+str(hidden_dimensionality3))
-    
-    if error:
-        continue
 
     # Organise each layer's ID into matrix for single save file
     intrinsic_dims = np.zeros((4, Ntr//Ncheck))
@@ -264,8 +267,6 @@ while run < 1:
     intrinsic_dims[3] = intrinsic_dim_hiddens3
 
     # Save the model and ID data
-    torch.save(model, 'TESTING Inverse Kinematics Model 2L No pruning, N='+str(N)+' run '+str(run)+'.pt')
-    np.save('TESTING Inverse Training Accuracies 2L No pruning, N='+str(N)+' run '+str(run)+'.npy', accuracies)
-    np.save('TESTING Intrinsic Dims No pruning, N='+str(N)+' run '+str(run)+'.npy', intrinsic_dims)
-
-    run +=1
+    torch.save(model, 'Inverse Kinematics Model 2L No pruning, N='+str(N)+' run '+str(run)+'.pt')
+    np.save('Inverse Training Accuracies 2L No pruning, N='+str(N)+' run '+str(run)+'.npy', accuracies)
+    np.save('Intrinsic Dims No pruning, N='+str(N)+' run '+str(run)+'.npy', intrinsic_dims)
