@@ -4,7 +4,7 @@ Research code for physics-aware Kolmogorov-Arnold networks (PhyKAN), including f
 
 ## Repository Areas
 
-- [`6axis_Robot_Noised/`](6axis_Robot_Noised/README.md): noisy six-axis robot forward and inverse kinematics.
+- [`Six_axis_Robot_Noised/`](6axis_Robot_Noised/README.md): noisy six-axis robot forward and inverse kinematics.
 - [`Continuous_CartPole/`](Continuous_CartPole/README.md): continuous-action CartPole reinforcement learning.
 - [`Feynman_Data/`](Feynman_Data/README.md): Feynman equation regression experiments.
 - [`MemKAN/`](MemKAN/README.md): memristor-based KAN experiments.
